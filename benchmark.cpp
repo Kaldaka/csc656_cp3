@@ -53,6 +53,9 @@ bool check_accuracy(double *A, double *Anot, int nvalues)
 /* The benchmarking program */
 int main(int argc, char** argv) 
 {
+  //from https://www.amd.com/en/products/cpu/amd-epyc-7763
+    double capacity = 204.8e9; // Peak memory bandwidth in bytes/sec.
+
     std::cout << "Description:\t" << dgemv_desc << std::endl << std::endl;
 
     std::cout << std::fixed << std::setprecision(5);
@@ -93,12 +96,25 @@ int main(int argc, char** argv)
         memcpy((void *)Ycopy, (const void *)Y, sizeof(double)*n);
 
         // insert start timer code here
+        auto start = std::chrono::high_resolution_clock::now();
 
         // call the method to do the work
         my_dgemv(n, A, X, Y); 
 
         // insert end timer code here, and print out the elapsed time for this problem size
+        auto end = std::chrono::high_resolution_clock::now();
 
+        double duration = std::chrono::duration<double>(end - start).count();
+
+        double mflops = (n/1e6) / duration;
+
+        double bytes = n * sizeof(uint64_t);
+
+        double memoryBandwidthUtilized = ((((bytes / 1e9) / duration) / capacity) * 100) * 1e9; // % of memory bandwidth utilized
+
+        printf("Time elapsed: %d\n", duration);
+        printf("MFLOP/s: %d\n", mflops);
+        printf("% Memory bandwidth utilized: %d\n", memoryBandwidthUtilized);
 
         // now invoke the cblas method to compute the matrix-vector multiplye
         reference_dgemv(n, Acopy, Xcopy, Ycopy);
